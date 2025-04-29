@@ -1,5 +1,6 @@
 package net.maku.egg.controller;
 
+import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,8 +52,12 @@ public class EggTemplateController {
 
     @GetMapping("list")
     @Operation(summary = "信息")
-    public Result<List<EggTemplateVO>> list(){
+    public Result<List<EggTemplateVO>> list(@RequestParam(value = "deviceType", required = false) String deviceType){
         LambdaQueryWrapper<EggTemplateEntity> queryWrapper = Wrappers.lambdaQuery();
+        // 如果deviceType不为空，则添加查询条件
+        if (deviceType != null && !deviceType.isEmpty()) {
+            queryWrapper.eq(EggTemplateEntity::getDeviceType, deviceType);
+        }
         queryWrapper.select(EggTemplateEntity::getId,EggTemplateEntity::getName);
         List<EggTemplateEntity> list = eggTemplateService.list(queryWrapper);
         return Result.ok(EggTemplateConvert.INSTANCE.convertList(list));

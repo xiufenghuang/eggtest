@@ -55,7 +55,7 @@ public class EggTemplateServiceImpl extends BaseServiceImpl<EggTemplateDao, EggT
     private LambdaQueryWrapper<EggTemplateEntity> getWrapper(EggTemplateQuery query) {
         LambdaQueryWrapper<EggTemplateEntity> wrapper = Wrappers.lambdaQuery();
         wrapper.like(ObjectUtil.isNotEmpty(query.getName()), EggTemplateEntity::getName, query.getName());
-
+        wrapper.eq(ObjectUtil.isNotEmpty(query.getDeviceType()),EggTemplateEntity::getDeviceType,query.getDeviceType());
         return wrapper;
     }
 
