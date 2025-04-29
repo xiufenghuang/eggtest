@@ -1,0 +1,9 @@
+auth:
+  ignore_urls:
+    - /mqtt/**
+    - /template/**
+    - /file/bin/file-bin
+    - /file/bin/download-chunk
+    - /egg/shop/wx-shopList
+    - /devicetemplate/**
+    - /device/**

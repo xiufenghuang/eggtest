@@ -1,0 +1,31 @@
+spring:
+  data:
+    redis:
+      database: 3
+      host: 47.121.213.9
+      port: 63379
+      password: Danpin123
+      timeout: 6000ms  # 连接超时时长（毫秒）
+  datasource:
+    dynamic:
+      hikari: # Hikari 连接池全局配置
+        connection-timeout: 30000     # 等待连接池分配链接的最大时长（毫秒），超过这个时长还没有可用的连接则发生 SQLException，默认：30 秒
+        minimum-idle: 2               # 最小空闲连接数
+        maximum-pool-size: 10         # 最大连接数
+        idle-timeout: 600000          # 连接超时的最大时长（毫秒），超时则被释放（retired），默认：10 分钟
+        max-lifetime: 1800000         # 连接的生命时长（毫秒），超时而且没被使用则被释放（retired），默认： 30 分钟
+        connection-test-query: SELECT 1
+      primary: master
+      datasource:
+        master:
+          # MySQL8
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://47.121.213.9:33306/egg?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
+          username: root
+          password: Danpin123
+  mqtt:
+    host: tcp://47.121.213.9:1883
+    username: root
+    password: Danpin123
+    clientId: egg_client_dev
+    default-topic: topic_default
