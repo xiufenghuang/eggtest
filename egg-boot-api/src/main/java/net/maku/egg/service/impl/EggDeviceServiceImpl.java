@@ -244,22 +244,77 @@ public class EggDeviceServiceImpl extends BaseServiceImpl<EggDeviceDao, EggDevic
         deviceBindService.handleTemplateUpdated(sn, previousTemplateId, templateId);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void updateDeviceTemplate(EggDeviceTemplateVO vo) {
-        EggDeviceEntity preModificationDevice = getById(vo.getId());
-        String sn = preModificationDevice.getSn();
+//    @Override
+//    @Transactional(rollbackFor = Exception.class)
+//    public void updateDeviceTemplate(EggDeviceTemplateVO vo) {
+//        EggDeviceEntity preModificationDevice = getById(vo.getId());
+//        String sn = preModificationDevice.getSn();
+//        LambdaQueryWrapper<EggDeviceEntity> deviceQueryWrapper = Wrappers.lambdaQuery();
+//        deviceQueryWrapper.eq(EggDeviceEntity::getSn, sn);
+//        EggDeviceEntity entity = getOne(deviceQueryWrapper);
+//        Optional.ofNullable(entity)
+//
+//        // 修改原来的数据
+//        EggDeviceEntity entity = EggDeviceConvert.INSTANCE.convert(vo);
+//        updateById(entity);
+//
+//
+//        // 1. 删除原有的设备模板关联
+//        eggDeviceTemplateRelationDao.delete(
+//            new QueryWrapper<EggDeviceTemplateRelationEntity>()
+//                .eq("device_id", vo.getId())
+//        );
+//
+//        // 2. 如果新的模板ID集合不为空，创建新的关联
+//        if (vo.getTemplateIds() != null && !vo.getTemplateIds().isEmpty()) {
+//            // 使用MyBatis-Plus的批量插入
+//            List<EggDeviceTemplateRelationEntity> relations = vo.getTemplateIds().stream()
+//                .map(templateId -> {
+//                    EggDeviceTemplateRelationEntity relation = new EggDeviceTemplateRelationEntity();
+//                    relation.setDeviceId(vo.getId().longValue());
+//                    relation.setTemplateId(templateId);
+//                    return relation;
+//                })
+//                .collect(Collectors.toList());
+//
+//                // 批量插入新的关联关系
+//            for (EggDeviceTemplateRelationEntity relation : relations) {
+//                eggDeviceTemplateRelationDao.insert(relation);
+//            }
+//        }
+//
+@Override
+@Transactional(rollbackFor = Exception.class)
+public void updateDeviceTemplate(EggDeviceTemplateVO vo) {
+    // 获取原始设备信息
+    EggDeviceEntity preModificationDevice = getById(vo.getId());
+    String sn = vo.getSn();  // 使用EggDeviceTemplateVO中的sn属性
 
-        // 1. 删除原有的设备模板关联
-        eggDeviceTemplateRelationDao.delete(
+    // 查询是否有其他设备的sn与当前sn相同
+    LambdaQueryWrapper<EggDeviceEntity> deviceQueryWrapper = Wrappers.lambdaQuery();
+    deviceQueryWrapper.eq(EggDeviceEntity::getSn, sn);
+    EggDeviceEntity entity = getOne(deviceQueryWrapper);
+
+    // 如果entity不为null且其ID与当前设备ID不同，表示sn重复，不进行更新
+    if (entity != null && !entity.getId().equals(preModificationDevice.getId())) {
+        // 如果sn重复，返回或抛出异常，避免更新
+        throw new IllegalArgumentException("设备SN已存在，无法更新");
+    }
+
+    // 修改原来的设备信息
+    EggDeviceEntity updatedEntity = EggDeviceConvert.INSTANCE.convert(vo);
+    updateById(updatedEntity);
+
+    // 1. 删除原有的设备模板关联
+    eggDeviceTemplateRelationDao.delete(
             new QueryWrapper<EggDeviceTemplateRelationEntity>()
-                .eq("device_id", vo.getId())
-        );
+                    .eq("device_id", vo.getId())
+    );
 
-        // 2. 如果新的模板ID集合不为空，创建新的关联
-        if (vo.getTemplateIds() != null && !vo.getTemplateIds().isEmpty()) {
-            // 使用MyBatis-Plus的批量插入
-            List<EggDeviceTemplateRelationEntity> relations = vo.getTemplateIds().stream()
+    // 2. 如果新的模板ID集合不为空，创建新的关联
+    if (vo.getTemplateIds() != null && !vo.getTemplateIds().isEmpty()) {
+        // 使用MyBatis-Plus的批量插入
+        List<EggDeviceTemplateRelationEntity> relations = vo.getTemplateIds().stream()
                 .map(templateId -> {
                     EggDeviceTemplateRelationEntity relation = new EggDeviceTemplateRelationEntity();
                     relation.setDeviceId(vo.getId().longValue());
@@ -268,26 +323,32 @@ public class EggDeviceServiceImpl extends BaseServiceImpl<EggDeviceDao, EggDevic
                 })
                 .collect(Collectors.toList());
 
-                // 批量插入新的关联关系
-            for (EggDeviceTemplateRelationEntity relation : relations) {
-                eggDeviceTemplateRelationDao.insert(relation);
-            }
-        }
-
-        // 修改原来的数据
-        EggDeviceEntity entity = EggDeviceConvert.INSTANCE.convert(vo);
-        updateById(entity);
-
-        // 3. 发送MQTT消息更新设备模板
-        try {
-            log.info("准备发送MQTT消息，设备SN: {}, 模板IDs: {}", sn, vo.getTemplateIds());
-            deviceBindService.handleTemplateUpdated(sn, vo.getTemplateIds());
-            log.info("MQTT消息发送成功");
-        } catch (Exception e) {
-            log.error("MQTT消息发送失败，设备SN: {}, 模板IDs: {}, 异常: {}", sn, vo.getTemplateIds(), e.getMessage(), e);
-            throw new ServerException("设备模板更新失败: " + e.getMessage());
+        // 批量插入新的关联关系
+        for (EggDeviceTemplateRelationEntity relation : relations) {
+            eggDeviceTemplateRelationDao.insert(relation);
         }
     }
+    try {
+        log.info("准备发送MQTT消息，设备SN: {}, 模板IDs: {}", sn, vo.getTemplateIds());
+        deviceBindService.handleTemplateUpdated(sn, vo.getTemplateIds());
+        log.info("MQTT消息发送成功");
+    } catch (Exception e) {
+        log.error("MQTT消息发送失败，设备SN: {}, 模板IDs: {}, 异常: {}", sn, vo.getTemplateIds(), e.getMessage(), e);
+        throw new ServerException("设备模板更新失败: " + e.getMessage());
+    }
+
+}
+
+//        // 3. 发送MQTT消息更新设备模板
+//        try {
+//            log.info("准备发送MQTT消息，设备SN: {}, 模板IDs: {}", sn, vo.getTemplateIds());
+//            deviceBindService.handleTemplateUpdated(sn, vo.getTemplateIds());
+//            log.info("MQTT消息发送成功");
+//        } catch (Exception e) {
+//            log.error("MQTT消息发送失败，设备SN: {}, 模板IDs: {}, 异常: {}", sn, vo.getTemplateIds(), e.getMessage(), e);
+//            throw new ServerException("设备模板更新失败: " + e.getMessage());
+//        }
+//    }
 
 
     @Override
@@ -555,6 +616,64 @@ public class EggDeviceServiceImpl extends BaseServiceImpl<EggDeviceDao, EggDevic
         List<EggDeviceVO> eggDeviceVOS = EggDeviceConvert.INSTANCE.convertList(list);
         return eggDeviceVOS;
     }
+
+    @Override
+    public List<EggDeviceVO> getNoBindMiniList() {
+        LambdaQueryWrapper<EggDeviceEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(EggDeviceEntity::getType,6);
+        queryWrapper.isNull(EggDeviceEntity::getParentDevice);
+        List<EggDeviceEntity> eggDeviceEntityList=list(queryWrapper);
+        List<EggDeviceVO> eggDeviceVOS = EggDeviceConvert.INSTANCE.convertList(eggDeviceEntityList);
+        return  eggDeviceVOS;
+    }
+
+    @Override
+    public List<EggDeviceVO> getHaveBindMiniListByGatewayId(Long id) {
+        LambdaQueryWrapper<EggDeviceEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(EggDeviceEntity::getType,6);
+        queryWrapper.eq(EggDeviceEntity::getParentDevice,id);
+        List<EggDeviceEntity> eggDeviceEntityList=list(queryWrapper);
+        List<EggDeviceVO> eggDeviceVOS = EggDeviceConvert.INSTANCE.convertList(eggDeviceEntityList);
+        return  eggDeviceVOS;
+    }
+
+    @Override
+    public void deleteBindMiniRelation(Long id) {
+        // 直接更新找到的记录，将 parentDevice 设置为 null
+        this.lambdaUpdate()
+                .set(EggDeviceEntity::getParentDevice, null)  // 设置 parentDevice 为 null
+                .eq(EggDeviceEntity::getType, 6)  // 条件：type 为 6
+                .eq(EggDeviceEntity::getId, id)  // 条件：id 匹配
+                .update();  // 执行更新操作
+    }
+
+
+    @Override
+    public void saveBindMini(List<Long> ids, Long parentDeviceId) {
+        // 遍历每个设备ID
+        for (Long id : ids) {
+            LambdaQueryWrapper<EggDeviceEntity> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(EggDeviceEntity::getType, 6);
+            queryWrapper.eq(EggDeviceEntity::getId, id);  // 查找对应ID的设备
+
+            // 创建更新对象，设置 ParentDevice 为 parentDeviceId
+            EggDeviceEntity updateEntity = new EggDeviceEntity();
+            updateEntity.setParentDevice(parentDeviceId);
+
+            // 执行更新操作
+            update(updateEntity, queryWrapper);
+        }
+    }
+
+//    @Override
+//    public List<EggDeviceVO> getGatewayList() {
+//        LambdaQueryWrapper<EggDeviceEntity> queryWrapper = new LambdaQueryWrapper<>();
+//        queryWrapper.eq(EggDeviceEntity::getTemplateId,3);
+//        List<EggDeviceEntity> eggDeviceEntities=list(queryWrapper);
+//        List<EggDeviceVO> eggDeviceVOS = EggDeviceConvert.INSTANCE.convertList(eggDeviceEntities);
+//        return  eggDeviceVOS;
+//    }
+
 //    public DeviceWithTemplatesDTO getDeviceWithTemplatesById(Integer deviceId) {
 //        // 1. 根据设备 ID 查询设备
 //        EggDeviceEntity device = this.getById(deviceId); // 通过设备ID直接查询设备

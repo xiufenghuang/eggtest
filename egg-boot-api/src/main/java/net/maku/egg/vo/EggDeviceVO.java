@@ -81,6 +81,6 @@ public class EggDeviceVO implements Serializable {
 
     @Schema(description = "删除标识符 (0-未删除, 1-已删除)")
     private Integer deleted;
-
-
+    @Schema(description = "微型价签的父设备id")
+    private Long parentDevice;
 }

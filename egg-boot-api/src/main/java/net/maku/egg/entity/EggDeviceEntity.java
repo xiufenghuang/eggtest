@@ -70,5 +70,11 @@ public class EggDeviceEntity extends MyBaseEntity {
     @TableField(value = "current_weight")
     private Double currentWeight;
 
+    /**
+     * 微型价签的父设备id
+     */
+    @TableField(value = "parent_device")
+    private Long parentDevice;
+
 
 }

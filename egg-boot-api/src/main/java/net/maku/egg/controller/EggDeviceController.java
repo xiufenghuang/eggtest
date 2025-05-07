@@ -133,14 +133,33 @@ public class EggDeviceController {
         return Result.ok(list);
     }
 
-//    // 查询所有设备及其绑定的模板信息
-//    @GetMapping("/allWithTemplates")
-//    public List<DeviceWithTemplatesDTO> getAllDevicesWithTemplates() {
-//        return eggDeviceService.getAllDevicesWithTemplates();
-//    }
-//    @GetMapping("/getTemplateById/{id}")
-//    public DeviceWithTemplatesDTO getDeviceWithTemplatesInfoById(@PathVariable("id") Integer deviceId) {
-//        return eggDeviceService.getDeviceWithTemplatesInfoById(deviceId);
-//    }
+    @GetMapping("mini/no-bind")
+    @Operation(summary = "获取未绑定的微型价签设备列表")
+    public Result<List<EggDeviceVO>> getNoBindMiniList() {
+        List<EggDeviceVO> list = eggDeviceService.getNoBindMiniList();
+        return Result.ok(list);
+    }
 
+    @GetMapping("mini/bind/{id}")
+    @Operation(summary = "根据网关ID获取已绑定的迷你设备列表")
+    public Result<List<EggDeviceVO>> getHaveBindMiniListByGatewayId(@PathVariable("id") Long id) {
+        List<EggDeviceVO> list = eggDeviceService.getHaveBindMiniListByGatewayId(id);
+        return Result.ok(list);
+    }
+
+    @DeleteMapping("mini/havebind/{id}")
+    @Operation(summary = "删除迷你设备绑定关系")
+    @OperateLog(type = OperateTypeEnum.DELETE)
+    public Result<String> deleteBindMiniRelation(@PathVariable("id") Long id) {
+        eggDeviceService.deleteBindMiniRelation(id);
+        return Result.ok("删除绑定关系成功");
+    }
+
+    @PostMapping("mini/bind/{parentDeviceId}")
+    @Operation(summary = "保存迷你设备绑定关系")
+    @OperateLog(type = OperateTypeEnum.INSERT)
+    public Result<String> saveBindMini(@RequestBody List<Long> ids, @PathVariable("parentDeviceId") Long parentDeviceId) {
+        eggDeviceService.saveBindMini(ids, parentDeviceId);
+        return Result.ok("绑定成功");
+    }
 }

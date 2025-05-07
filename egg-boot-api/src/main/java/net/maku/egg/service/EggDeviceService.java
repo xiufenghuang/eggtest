@@ -61,6 +61,13 @@ public interface EggDeviceService extends BaseService<EggDeviceEntity> {
     void bindDevice(EggBindVO bindVO);
 
     List<EggDeviceVO> getDeviceListByShop(Long shopId);
+//    List<EggDeviceVO> getGatewayList();
+//    List<EggDeviceVO> getGatewayListByParentDeviceId(Long parentDeviceId);
+    List<EggDeviceVO> getNoBindMiniList();
+    List<EggDeviceVO> getHaveBindMiniListByGatewayId(Long id);
+    void deleteBindMiniRelation(Long id);
+
+    void saveBindMini(List<Long> ids,Long parentDeviceId);
 
     PageResult<DeviceWithTemplatesDTO> pageWithTemplates(EggDeviceQuery query);
     void deleteDeviceTemplate(List<Long> idList);
