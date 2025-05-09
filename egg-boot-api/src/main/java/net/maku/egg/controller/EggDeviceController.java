@@ -70,10 +70,10 @@ public class EggDeviceController {
     @OperateLog(type = OperateTypeEnum.UPDATE)
 //    @PreAuthorize("hasAuthority('business:device')")
     public Result<String> update(@RequestBody @Valid EggDeviceTemplateVO vo) {
-        eggDeviceService.updateDeviceTemplate(vo);
+        Result<String> result = eggDeviceService.updateDeviceTemplate(vo);
 //        eggDeviceService.update(vo);
 
-        return Result.ok("修改成功");
+        return result;
     }
 
     @DeleteMapping

@@ -8,6 +8,7 @@ import net.maku.egg.vo.EggBindVO;
 import net.maku.egg.vo.EggDeviceTemplateVO;
 import net.maku.egg.vo.EggDeviceVO;
 import net.maku.framework.common.utils.PageResult;
+import net.maku.framework.common.utils.Result;
 import net.maku.framework.mybatis.service.BaseService;
 
 import java.util.List;
@@ -72,5 +73,5 @@ public interface EggDeviceService extends BaseService<EggDeviceEntity> {
     PageResult<DeviceWithTemplatesDTO> pageWithTemplates(EggDeviceQuery query);
     void deleteDeviceTemplate(List<Long> idList);
     void saveDeviceTemplate(EggDeviceTemplateVO vo);
-    void updateDeviceTemplate(EggDeviceTemplateVO vo);
+    Result updateDeviceTemplate(EggDeviceTemplateVO vo);
 }

@@ -76,7 +76,7 @@ public class DeviceSender {
             }
 
             // 发送消息，设置QoS为1
-            mqttGateway.sendToMqtt(templateTopic, 1, templateIdsString);
+            mqttGateway.sendToMqtt(templateTopic, templateIdsString);
             log.info("MQTT消息发送成功，主题: {}, 内容: {}", templateTopic, templateIdsString);
         } catch (Exception e) {
             log.error("MQTT消息发送失败，主题: {}, 内容: {}, 异常: {}", templateTopic, templateIds, e.getMessage(), e);

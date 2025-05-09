@@ -30,7 +30,7 @@ import java.util.List;
  * <a href="https://maku.net">MAKU</a>
  */
 @RestController
-@RequestMapping("/device-weight-record")
+@RequestMapping("/business/record")
 @Tag(name="设备重量记录表")
 @AllArgsConstructor
 public class EggDeviceWeightRecordController {

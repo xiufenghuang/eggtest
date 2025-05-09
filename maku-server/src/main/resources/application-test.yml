@@ -43,5 +43,5 @@ spring:
     host: tcp://47.121.213.9:1883
     username: root
     password: Danpin123
-    clientId: egg_client_dev
+    clientId: egg_client_dev1
     default-topic: topic_default

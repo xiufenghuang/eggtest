@@ -32,6 +32,7 @@ import net.maku.framework.common.cache.RedisCache;
 import net.maku.framework.common.exception.ServerException;
 import net.maku.framework.common.utils.ExcelUtils;
 import net.maku.framework.common.utils.PageResult;
+import net.maku.framework.common.utils.Result;
 import net.maku.framework.mybatis.service.impl.BaseServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -285,7 +286,7 @@ public class EggDeviceServiceImpl extends BaseServiceImpl<EggDeviceDao, EggDevic
 //
 @Override
 @Transactional(rollbackFor = Exception.class)
-public void updateDeviceTemplate(EggDeviceTemplateVO vo) {
+public Result updateDeviceTemplate(EggDeviceTemplateVO vo) {
     // 获取原始设备信息
     EggDeviceEntity preModificationDevice = getById(vo.getId());
     String sn = vo.getSn();  // 使用EggDeviceTemplateVO中的sn属性
@@ -298,7 +299,7 @@ public void updateDeviceTemplate(EggDeviceTemplateVO vo) {
     // 如果entity不为null且其ID与当前设备ID不同，表示sn重复，不进行更新
     if (entity != null && !entity.getId().equals(preModificationDevice.getId())) {
         // 如果sn重复，返回或抛出异常，避免更新
-        throw new IllegalArgumentException("设备SN已存在，无法更新");
+        return  Result.error("输入的sn号已存在");
     }
 
     // 修改原来的设备信息
@@ -337,6 +338,7 @@ public void updateDeviceTemplate(EggDeviceTemplateVO vo) {
         throw new ServerException("设备模板更新失败: " + e.getMessage());
     }
 
+    return Result.ok("修改设备成功");
 }
 
 //        // 3. 发送MQTT消息更新设备模板

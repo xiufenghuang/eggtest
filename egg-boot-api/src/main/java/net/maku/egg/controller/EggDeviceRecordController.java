@@ -33,7 +33,7 @@ public class EggDeviceRecordController {
 
     @GetMapping("page")
     @Operation(summary = "分页")
-    @PreAuthorize("hasAuthority('device-record:record')")
+//    @PreAuthorize("hasAuthority('device-record:record')")
     public Result<PageResult<EggDeviceRecordVO>> page(@ParameterObject @Valid EggDeviceRecordQuery query){
         PageResult<EggDeviceRecordVO> page = eggDeviceRecordService.page(query);
 
