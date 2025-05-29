@@ -21,6 +21,8 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import net.maku.egg.dto.EggGateWayDevice;
+import java.time.LocalDateTime;
 
 import java.util.List;
 
@@ -61,7 +63,6 @@ public class EggDeviceController {
     @PreAuthorize("hasAuthority('business:device')")
     public Result<String> save(@RequestBody EggDeviceTemplateVO vo) {
         eggDeviceService.saveDeviceTemplate(vo);
-
         return Result.ok();
     }
 
@@ -125,11 +126,11 @@ public class EggDeviceController {
         eggDeviceService.bindDevice(bindVO);
         return Result.ok("绑定成功");
     }
-
+    //代码路径错误，org是机构，下面的方法其实是根据店铺id获取设备，小程序也是
     @GetMapping("org/{id}")
     @Operation(summary = "根据orgId获取设备列表")
-    public Result<List<EggDeviceVO>> getDeviceByOrg(@PathVariable("id") Long shopId){
-        List<EggDeviceVO> list = eggDeviceService.getDeviceListByShop(shopId);
+    public Result<List<DeviceWithTemplatesDTO>> getDeviceByOrg(@PathVariable("id") Long shopId){
+        List<DeviceWithTemplatesDTO> list = eggDeviceService.getDeviceListByShop(shopId);
         return Result.ok(list);
     }
 
@@ -161,5 +162,38 @@ public class EggDeviceController {
     public Result<String> saveBindMini(@RequestBody List<Long> ids, @PathVariable("parentDeviceId") Long parentDeviceId) {
         eggDeviceService.saveBindMini(ids, parentDeviceId);
         return Result.ok("绑定成功");
+    }
+
+    @GetMapping("shop/weight/{shopId}")
+    @Operation(summary = "获取店铺设备总重量")
+    public Result<Double> getShopDevicesTotalWeight(@PathVariable("shopId") Long shopId) {
+        Double totalWeight = eggDeviceService.getShopDevicesTotalWeight(shopId);
+        return Result.ok(totalWeight);
+    }
+
+    @PostMapping("gateway/weight")
+    @Operation(summary = "更新网关设备重量")
+    @OperateLog(type = OperateTypeEnum.UPDATE)
+    public Result<String> updateGatewayWeight(@RequestBody @Valid EggGateWayDevice gatewayDevice) {
+        // 计算总重量
+        double totalPreviousWeight = gatewayDevice.getDevices().stream()
+                .mapToDouble(EggGateWayDevice.DeviceWeight::getPreviousWeight)
+                .sum();
+        
+        double totalCurrentWeight = gatewayDevice.getDevices().stream()
+                .mapToDouble(EggGateWayDevice.DeviceWeight::getCurrentWeight)
+                .sum();
+
+        // 更新设备重量
+        EggDeviceEntity device = new EggDeviceEntity();
+        device.setSn(gatewayDevice.getSn());
+        device.setPreviousWeight(totalPreviousWeight);
+        device.setCurrentWeight(totalCurrentWeight);
+        device.setUpdateTime(LocalDateTime.now());
+
+        // 根据SN更新设备
+        eggDeviceService.updateGateWayBySn(device);
+        
+        return Result.ok("更新成功");
     }
 }

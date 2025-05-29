@@ -58,7 +58,7 @@ public class EggTemplateController {
         if (deviceType != null && !deviceType.isEmpty()) {
             queryWrapper.eq(EggTemplateEntity::getDeviceType, deviceType);
         }
-        queryWrapper.select(EggTemplateEntity::getId,EggTemplateEntity::getName);
+//        queryWrapper.select(EggTemplateEntity::getId,EggTemplateEntity::getName);
         List<EggTemplateEntity> list = eggTemplateService.list(queryWrapper);
         return Result.ok(EggTemplateConvert.INSTANCE.convertList(list));
     }

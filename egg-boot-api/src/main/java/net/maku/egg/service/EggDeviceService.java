@@ -25,6 +25,7 @@ public interface EggDeviceService extends BaseService<EggDeviceEntity> {
     PageResult<EggDeviceVO> page(EggDeviceQuery query);
 
     EggDeviceVO get(Long id);
+
 //    List<DeviceWithTemplatesDTO>  getAllDevicesWithTemplates();
 //    DeviceWithTemplatesDTO getDeviceWithTemplatesInfoById(Integer deviceId);
 
@@ -61,7 +62,7 @@ public interface EggDeviceService extends BaseService<EggDeviceEntity> {
 
     void bindDevice(EggBindVO bindVO);
 
-    List<EggDeviceVO> getDeviceListByShop(Long shopId);
+    List<DeviceWithTemplatesDTO> getDeviceListByShop(Long shopId);
 //    List<EggDeviceVO> getGatewayList();
 //    List<EggDeviceVO> getGatewayListByParentDeviceId(Long parentDeviceId);
     List<EggDeviceVO> getNoBindMiniList();
@@ -74,4 +75,22 @@ public interface EggDeviceService extends BaseService<EggDeviceEntity> {
     void deleteDeviceTemplate(List<Long> idList);
     void saveDeviceTemplate(EggDeviceTemplateVO vo);
     Result updateDeviceTemplate(EggDeviceTemplateVO vo);
+
+    /**
+     * 获取店铺设备总重量
+     * @param shopId 店铺ID
+     * @return 设备总重量
+     */
+    Double getShopDevicesTotalWeight(Long shopId);
+
+    /**
+     * 记录所有店铺的设备总重量
+     */
+    void recordAllShopDevicesWeight();
+
+    /**
+     * 根据SN更新网关设备重量
+     * @param device 设备实体
+     */
+    void updateGateWayBySn(EggDeviceEntity device);
 }

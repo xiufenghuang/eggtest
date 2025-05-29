@@ -15,6 +15,7 @@ import net.maku.egg.convert.EggDeviceConvert;
 import net.maku.egg.convert.EggDeviceTemplateRelationConvert;
 import net.maku.egg.dao.EggDeviceDao;
 import net.maku.egg.dao.EggDeviceTemplateRelationDao;
+import net.maku.egg.dao.EggShopWeightDao;
 import net.maku.egg.dao.EggTemplateDao;
 import net.maku.egg.dto.DeviceBindBatchDTO;
 import net.maku.egg.dto.DeviceWithTemplatesDTO;
@@ -38,10 +39,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -73,6 +73,8 @@ public class EggDeviceServiceImpl extends BaseServiceImpl<EggDeviceDao, EggDevic
     private EggDeviceTemplateRelationDao eggDeviceTemplateRelationDao;
     @Autowired
     private EggTemplateDao eggTemplateDao;
+    @Autowired
+    private EggShopWeightDao eggShopWeightDao;
 
 
 //    public List<DeviceWithTemplatesDTO> getAllDevicesWithTemplates() {
@@ -611,12 +613,46 @@ public Result updateDeviceTemplate(EggDeviceTemplateVO vo) {
     }
 
     @Override
-    public List<EggDeviceVO> getDeviceListByShop(Long shopId) {
+    public List<DeviceWithTemplatesDTO> getDeviceListByShop(Long shopId) {
+        // 1. 根据 shopId 查询设备列表（替换分页逻辑）
         LambdaQueryWrapper<EggDeviceEntity> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(EggDeviceEntity::getShopId,shopId);
-        List<EggDeviceEntity> list = list(queryWrapper);
-        List<EggDeviceVO> eggDeviceVOS = EggDeviceConvert.INSTANCE.convertList(list);
-        return eggDeviceVOS;
+        queryWrapper.eq(EggDeviceEntity::getShopId, shopId);
+        List<EggDeviceEntity> deviceList = list(queryWrapper);
+
+        // 2. 遍历设备列表，查询模板关联信息（逻辑与分页方法完全一致）
+        List<DeviceWithTemplatesDTO> deviceWithTemplatesDTOList= deviceList.stream().map(device -> {
+            // 3. 查询设备模板关联表
+            List<EggDeviceTemplateRelationEntity> deviceTemplates = eggDeviceTemplateRelationDao.selectList(
+                    new QueryWrapper<EggDeviceTemplateRelationEntity>().eq("device_id", device.getId())
+            );
+
+            // 4. 提取模板ID列表
+            List<Long> templateIds = deviceTemplates.stream()
+                    .map(EggDeviceTemplateRelationEntity::getTemplateId)
+                    .collect(Collectors.toList());
+
+            // 5. 查询模板信息
+            List<EggTemplateEntity> templates = templateIds.isEmpty() ?
+                    Collections.emptyList() :
+                    eggTemplateDao.selectList(new QueryWrapper<EggTemplateEntity>().in("id", templateIds));
+
+            // 6. 获取店铺名称（复用分页逻辑）
+            String shopName = Optional.ofNullable(device.getShopId())
+                    .map(shopIdKey -> ExplainPropsUtil.getPropsLabel(
+                            shopService.getShopNameList(List.of(shopIdKey)), // 假设支持批量查询
+                            "未知店铺"
+                    ))
+                    .orElse("未绑定店铺");
+
+            // 7. 提取模板名称列表
+            List<String> templateNames = templates.stream()
+                    .map(EggTemplateEntity::getName)
+                    .collect(Collectors.toList());
+            // 8. 构造 DTO（字段需与 DeviceWithTemplatesDTO 构造函数匹配）
+            return new DeviceWithTemplatesDTO(device,templates, shopName, templateNames);
+        }).collect(Collectors.toList());
+        return deviceWithTemplatesDTOList;
+
     }
 
     @Override
@@ -731,6 +767,54 @@ public Result updateDeviceTemplate(EggDeviceTemplateVO vo) {
 //        return new DeviceWithTemplatesDTO(device, templates);
 //    }
 
+    @Override
+    public Double getShopDevicesTotalWeight(Long shopId) {
+        // 构建查询条件
+        LambdaQueryWrapper<EggDeviceEntity> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(EggDeviceEntity::getShopId, shopId);
+        
+        // 查询该店铺下的所有设备
+        List<EggDeviceEntity> devices = list(queryWrapper);
+        
+        // 计算所有设备的previousWeight总和，排除null和0的情况
+        return devices.stream()
+                .map(EggDeviceEntity::getPreviousWeight)
+                .filter(weight -> weight != null && weight > 0)
+                .mapToDouble(Double::doubleValue)
+                .sum();
+    }
 
+    @Override
+    public void recordAllShopDevicesWeight() {
+        // 获取所有店铺列表
+        List<EggShopVO> shopList = shopService.getShopList();
+        
+        // 遍历每个店铺，获取设备总重量并保存
+        for (EggShopVO shop : shopList) {
+            Long shopId = shop.getId();
+            Double totalWeight = getShopDevicesTotalWeight(shopId);
+            
+            // 创建重量记录实体
+            EggShopWeightEntity weightEntity = new EggShopWeightEntity();
+            weightEntity.setShopId(shopId);
+            weightEntity.setWeight(totalWeight);
+            weightEntity.setCreateTime(LocalDateTime.now());
+            
+            // 保存到数据库
+            eggShopWeightDao.insert(weightEntity);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateGateWayBySn(EggDeviceEntity device) {
+        LambdaUpdateWrapper<EggDeviceEntity> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(EggDeviceEntity::getSn, device.getSn())
+                .set(EggDeviceEntity::getPreviousWeight, device.getPreviousWeight())
+                .set(EggDeviceEntity::getCurrentWeight, device.getCurrentWeight())
+                .set(EggDeviceEntity::getUpdateTime, device.getUpdateTime());
+        
+        update(wrapper);
+    }
 
 }

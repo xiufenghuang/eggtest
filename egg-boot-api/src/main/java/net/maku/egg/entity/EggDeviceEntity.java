@@ -62,7 +62,7 @@ public class EggDeviceEntity extends MyBaseEntity {
      * 上一次重量
      */
     @TableField(value = "previous_weight")
-    private Double previousWeight;
+        private Double previousWeight;
 
     /**
      * 当前重量
